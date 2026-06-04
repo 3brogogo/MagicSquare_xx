@@ -1,0 +1,70 @@
+# MagicSquare_xx — Cursor Rules (초안)
+# SSOT: docs/PRD.md, Report/01·02
+
+## 도메인 (고정 계약)
+
+- 4×4 부분 마방진: 셀 값 `0`(빈칸) 또는 `1..16`, **빈칸(`0`) 정확히 2개**
+- 완성 판정: **10선**(행4+열4+대각2) 합 = 마방진 상수 **34**
+- 성공 출력: `int[6]` — `[r1, c1, n1, r2, c2, n2]` (좌표 **1-index**, row-major 빈칸 순)
+- 실패: **첫 위반 1개만**; 에러 우선순위 Shape → EmptyCount → Range → Duplicate → Unsolvable → Data
+- `n1,n2` 배정: small→first / large→second 먼저, 실패 시 reverse, 둘 다 실패 시 해 없음
+
+## 오류 코드 (boundary 전담)
+
+| 코드 | 담당 |
+|:---|:---|
+| E001 | Shape (4×4 아님) |
+| E002 | EmptyCount (`0` ≠ 2) |
+| E003 | Range (`0` 또는 `1..16` 위반) |
+| E004 | Duplicate (0 제외 중복) |
+| E005 | Unsolvable (두 배정 실패) |
+| E006 | Data (저장/로드 등 I/O) |
+| E007 | (boundary 확장·미매핑 UI 오류) |
+
+- **boundary**: E001~E007 매핑·`message` 완전 일치·UX Contract
+- **entity / control**: **E001~E005 처리 금지** — 입력 검증·UX 문구는 boundary만
+- entity/control은 도메인 규칙·10선 판정·조합 시도만 (거부는 boolean/None/도메인 결과)
+
+## 아키텍처 (ECB)
+
+```
+boundary → control → entity
+```
+
+- 허용 의존: boundary→control→entity
+- **금지**: entity→control/boundary import, control→boundary import
+- 레이어 역할:
+  - **entity**: `find_blank_coords`, `find_not_exist_nums`, `is_magic_square` (10선, 행→열→대각)
+  - **control**: 유스케이스·두 배정 시도·결정적 출력 조립
+  - **boundary**: 파싱·스키마·E001~E007·첫 위반 노출
+
+## Dual-Track TDD
+
+| Track | 레이어 | 테스트 ID | 파일명 |
+|:---|:---|:---|:---|
+| Logic | entity, control | `D-*` | `test_d_*.py` |
+| UI | boundary | `U-*` | `test_u_*.py` |
+
+- **Logic Track**: Domain **Mock 금지** (실제 entity/control 동작만)
+- **UI Track**: boundary **Mock 허용** (control/entity 스텁·페이크 OK)
+- UI 테스트는 도메인 내부에 의존하지 않음; Logic 테스트는 boundary를 모름
+
+## TDD 규칙
+
+- 사이클: **RED → GREEN → REFACTOR** (순서 위반 금지)
+- **assert 완화·`skip`·`xfail` 금지** — 실패는 구현으로 해결
+- 테스트 = 사양; Mom Test 회귀(대각선·첫 위반·입력 조기 거부) 유지
+- **MagicConstant SSOT**: `34`, 격자 `16` 등은 상수 모듈/entity 한곳만 — 리터럴 산재 금지
+
+## AI 행동
+
+- 응답·주석·커밋 메시지 제안: **한국어**
+- TDD 작업 시 매 응답 상단에 선언: **Phase**(RED/GREEN/REFACTOR) · **Layer**(boundary/control/entity) · **Track**(Logic/UI)
+- 범위 최소화: 요청·해당 Phase·해당 레이어만 수정
+- **git commit / push**: 사용자가 명시 요청할 때만
+- 계약·문구·우선순위 변경 시 PRD·Report와 불일치 여부를 먼저 지적
+
+## 디렉터리 (참고)
+
+- `src/{boundary,control,entity}`, `tests/{boundary,control,entity}`
+- 구현 전 상세 RED 목록은 PRD §9·§10 및 Report를 따른다
