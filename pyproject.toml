@@ -1,0 +1,16 @@
+[project]
+name = "magicsquare-xx"
+version = "0.0.0"
+description = "4×4 magic square completion (two missing numbers) — ECB + Dual-Track TDD harness"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0,<9",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = ["-ra"]
